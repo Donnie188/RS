@@ -1,0 +1,26 @@
+<view class="card" style="text-align:center;padding:48rpx;">
+  <view style="width:120rpx;height:120rpx;border-radius:50%;background:#DBEAFE;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:48rpx;">👤</view>
+  <view style="font-size:36rpx;font-weight:700;margin-top:16rpx;">{{user.name}}</view>
+  <view class="muted">{{user.empNo}} · {{user.dept}} · {{user.label}}</view>
+</view>
+
+<view class="card">
+  <view class="title" style="margin-bottom:20rpx;">切换体验身份</view>
+  <view bindtap="switchRole" data-r="employee" style="padding:20rpx;border-bottom:1rpx solid #F1F5F9;">
+    👷 普通员工（李小禾）{{role==='employee'?'✓':''}}
+  </view>
+  <view bindtap="switchRole" data-r="manager" style="padding:20rpx;border-bottom:1rpx solid #F1F5F9;">
+    👔 部门主管（王建国）{{role==='manager'?'✓':''}}
+  </view>
+  <view bindtap="switchRole" data-r="finance" style="padding:20rpx;">
+    💼 财务审核（陈雅琴）{{role==='finance'?'✓':''}}
+  </view>
+</view>
+
+<view class="card">
+  <view class="muted" style="line-height:1.8;">
+    青禾报销助手 · AI 拍票版<br/>
+    v1.0 · 2026-10 · 课程作业<br/>
+    拍票识别 → 自动填单 → 主管审批 → 财务复核 → 打款
+  </view>
+</view>

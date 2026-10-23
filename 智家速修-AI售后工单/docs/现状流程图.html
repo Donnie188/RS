@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-canvas-width="1000" data-canvas-height="1400">
+<head>
+<meta charset="UTF-8">
+<title>现状流程图</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#f3f4f6; padding:40px; color:#1e293b; }
+  .header { margin-bottom:24px; }
+  .header h1 { font-size:24px; font-weight:800; color:#111827; margin-bottom:6px; }
+  .header .sub { font-size:13px; color:#6b7280; }
+  .flow { position:relative; padding-left:36px; }
+  .flow::before { content:""; position:absolute; left:15px; top:18px; bottom:18px; width:2px; background:#d1d5db; }
+  .step { position:relative; margin-bottom:12px; }
+  .num { position:absolute; left:-36px; top:12px; width:32px; height:32px; border-radius:50%; background:#6b7280; color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px #f3f4f6; }
+  .card { background:#fff; border-radius:10px; padding:14px 18px; border:1px solid #e5e7eb; border-left:3px solid #6b7280; }
+  .card .t { font-size:15px; font-weight:700; color:#111827; margin-bottom:4px; }
+  .card .d { font-size:12.5px; color:#6b7280; line-height:1.6; }
+  .risk { margin-top:8px; font-size:12px; color:#b91c1c; background:#fef2f2; padding:6px 10px; border-radius:5px; border-left:2px solid #ef4444; }
+  .legend { display:flex; gap:16px; margin-bottom:20px; font-size:12px; color:#4b5563; }
+  .legend-item { display:flex; align-items:center; gap:6px; }
+  .dot { width:11px; height:11px; border-radius:50%; background:#6b7280; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>现状流程图 · 传统人工报修模式</h1>
+  <div class="sub">全流程人工驱动，平均处理时长 4 小时，一次修复率仅 72%</div>
+</div>
+<div class="legend">
+  <div class="legend-item"><span class="dot"></span>人工操作节点</div>
+</div>
+<div class="flow">
+  <div class="step"><div class="num">1</div><div class="card"><div class="t">用户拨打 400 电话</div><div class="d">排队等待客服接入，平均等待 8–15 分钟</div><div class="risk">⚠ 痛点：电话占线，用户反复拨打</div></div></div>
+  <div class="step"><div class="num">2</div><div class="card"><div class="t">客服手工记录故障</div><div class="d">客服凭笔录写下故障描述，录入 Excel</div><div class="risk">⚠ 痛点：文字描述模糊，信息丢失</div></div></div>
+  <div class="step"><div class="num">3</div><div class="card"><div class="t">主管人工分诊</div><div class="d">主管看故障描述，判断属于哪类问题</div><div class="risk">⚠ 痛点：凭经验判断，准确率约 70%</div></div></div>
+  <div class="step"><div class="num">4</div><div class="card"><div class="t">人工电话派单</div><div class="d">主管打电话给工程师，约定上门时间</div><div class="risk">⚠ 痛点：不知道工程师在哪、有没有空</div></div></div>
+  <div class="step"><div class="num">5</div><div class="card"><div class="t">工程师上门维修</div><div class="d">工程师凭经验带备件，现场发现缺件再跑一趟</div><div class="risk">⚠ 痛点：18% 工单需要二次上门</div></div></div>
+  <div class="step"><div class="num">6</div><div class="card"><div class="t">客服电话回访</div><div class="d">维修完第二天，客服打电话问满意度</div><div class="risk">⚠ 痛点：用户已经忘了，回访流于形式</div></div></div>
+  <div class="step"><div class="num">7</div><div class="card"><div class="t">人工统计报表</div><div class="d">月底主管手工汇总工单数据，做 Excel 报表</div><div class="risk">⚠ 痛点：数据滞后，无法实时决策</div></div></div>
+</div>
+</body>
+</html>

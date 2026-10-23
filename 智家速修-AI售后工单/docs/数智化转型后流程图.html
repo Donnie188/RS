@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-canvas-width="1000" data-canvas-height="1600">
+<head>
+<meta charset="UTF-8">
+<title>数智化转型后流程图</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#f5f3ff; padding:40px; color:#1e293b; }
+  .header { margin-bottom:24px; }
+  .header h1 { font-size:24px; font-weight:800; color:#111827; margin-bottom:6px; }
+  .header .sub { font-size:13px; color:#6b7280; }
+  .flow { position:relative; padding-left:36px; }
+  .flow::before { content:""; position:absolute; left:15px; top:18px; bottom:18px; width:2px; background:#ddd6fe; }
+  .step { position:relative; margin-bottom:12px; }
+  .num { position:absolute; left:-36px; top:12px; width:32px; height:32px; border-radius:50%; color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px #f5f3ff; }
+  .card { background:#fff; border-radius:10px; padding:14px 18px; border:1px solid #e5e7eb; }
+  .card .t { font-size:15px; font-weight:700; color:#111827; margin-bottom:4px; }
+  .card .d { font-size:12.5px; color:#6b7280; line-height:1.6; }
+  .ai-tag { display:inline-block; background:#ede9fe; color:#6d28d9; font-size:11px; font-weight:700; padding:1px 8px; border-radius:4px; margin-left:8px; }
+  .legend { display:flex; gap:16px; margin-bottom:20px; font-size:12px; color:#4b5563; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:6px; }
+  .dot { width:11px; height:11px; border-radius:50%; }
+  .decision { background:#fef3c7; border:1.5px solid #f59e0b; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:700; color:#92400e; margin:12px 0; }
+  .branch { margin-left:20px; padding-left:20px; border-left:2px dashed #fbbf24; margin-top:6px; }
+  .branch-label { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; margin-bottom:4px; }
+  .b-yes { background:#d1fae5; color:#047857; }
+  .b-no { background:#fee2e2; color:#b91c1c; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>数智化转型后流程图 · AI 驱动售后工单</h1>
+  <div class="sub">AI 覆盖意图识别、故障初诊、智能派单、满意度预测，平均处理时长降至 1.5 小时</div>
+</div>
+<div class="legend">
+  <div class="legend-item"><span class="dot" style="background:#7c3aed;"></span>AI 智能节点</div>
+  <div class="legend-item"><span class="dot" style="background:#ea580c;"></span>人工工程师</div>
+  <div class="legend-item"><span class="dot" style="background:#0891b2;"></span>数据沉淀</div>
+</div>
+<div class="flow">
+  <div class="step"><div class="num" style="background:#2563eb;">1</div><div class="card" style="border-left:3px solid #2563eb;"><div class="t">用户一键报修</div><div class="d">小程序提交，自动绑定设备 SN 与购买凭证</div></div></div>
+  <div class="step"><div class="num" style="background:#7c3aed;">2</div><div class="card" style="border-left:3px solid #7c3aed;"><div class="t">AI 意图识别与工单建档<span class="ai-tag">AI</span></div><div class="d">NLP 自动归类故障类型、紧急程度，秒级生成结构化工单</div></div></div>
+  <div class="step"><div class="num" style="background:#7c3aed;">3</div><div class="card" style="border-left:3px solid #7c3aed;"><div class="t">AI 故障初诊<span class="ai-tag">AI</span></div><div class="d">知识库向量检索，给出 Top3 可能原因与自助排查步骤</div></div></div>
+  <div class="decision">◇ 判断：能否远程指导用户自行解决？</div>
+  <div class="branch">
+    <span class="branch-label b-yes">是 · 远程解决</span>
+    <div class="card" style="margin-top:4px;"><div class="d">推送图文/视频教程 → 用户操作 → AI 在线确认 → 工单闭环，无需上门</div></div>
+  </div>
+  <div class="branch">
+    <span class="branch-label b-no">否 · 进入派单</span>
+  </div>
+  <div class="step"><div class="num" style="background:#7c3aed;">4</div><div class="card" style="border-left:3px solid #7c3aed;"><div class="t">AI 智能派单<span class="ai-tag">AI</span></div><div class="d">算法匹配最近、技能对口、负载最低的工程师，自动预约上门时段</div></div></div>
+  <div class="step"><div class="num" style="background:#ea580c;">5</div><div class="card" style="border-left:3px solid #ea580c;"><div class="t">工程师上门维修</div><div class="d">携带 AI 预判的备件清单，现场检测拍照上传</div></div></div>
+  <div class="decision">◇ 判断：是否一次修复成功？</div>
+  <div class="branch">
+    <span class="branch-label b-yes">是 · 进入闭环</span>
+  </div>
+  <div class="branch">
+    <span class="branch-label b-no">否 · 升级二线</span>
+    <div class="card" style="margin-top:4px;"><div class="d">自动升级专家工单 → 二线工程师介入 → 用户全程短信同步</div></div>
+  </div>
+  <div class="step"><div class="num" style="background:#7c3aed;">6</div><div class="card" style="border-left:3px solid #7c3aed;"><div class="t">AI 满意度预测回访<span class="ai-tag">AI</span></div><div class="d">预测低分风险工单，高风险人工坐席 24h 内主动外呼</div></div></div>
+  <div class="step"><div class="num" style="background:#0891b2;">7</div><div class="card" style="border-left:3px solid #0891b2;"><div class="t">维修记录沉淀知识库</div><div class="d">每次维修自动结构化入库，反哺 AI 识别与初诊模型</div></div></div>
+</div>
+</body>
+</html>

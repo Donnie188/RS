@@ -1,0 +1,17 @@
+<view style="display:flex;gap:12rpx;padding:20rpx 24rpx;overflow-x:auto;">
+  <view bindtap="setFilter" data-f="all"     class="tag {{filter==='all'?'tag-blue':'tag-gray'}}">全部</view>
+  <view bindtap="setFilter" data-f="submitted" class="tag {{filter==='submitted'?'tag-blue':'tag-gray'}}">审批中</view>
+  <view bindtap="setFilter" data-f="paid"     class="tag {{filter==='paid'?'tag-green':'tag-gray'}}">已打款</view>
+  <view bindtap="setFilter" data-f="rejected" class="tag {{filter==='rejected'?'tag-red':'tag-gray'}}">已驳回</view>
+</view>
+
+<view wx:for="{{list}}" wx:key="id" class="card" bindtap="openDetail" data-idx="{{index}}">
+  <view style="display:flex;justify-content:space-between;align-items:center;">
+    <view style="font-weight:700;">{{item.title}}</view>
+    <view class="tag {{item.status==='paid'?'tag-green':item.status==='rejected'?'tag-red':'tag-orange'}}">
+      {{item.status==='paid'?'已打款':item.status==='rejected'?'已驳回':'审批中'}}
+    </view>
+  </view>
+  <view class="muted" style="margin-top:6rpx;">{{item.id}} · {{item.createdAt}}</view>
+  <view style="font-size:34rpx;font-weight:700;color:#0F172A;margin-top:10rpx;">¥{{item.amount}}</view>
+</view>

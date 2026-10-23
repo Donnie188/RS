@@ -1,0 +1,26 @@
+<view class="card" style="background:#EFF6FF;">
+  <view style="color:#1D4ED8;font-weight:600;">当前身份：{{roleName}}</view>
+  <view class="muted" style="margin-top:4rpx;">
+    {{role === 'employee' ? '员工视角：这里只显示你自己提交中的单据' : role === 'manager' ? '主管视角：审批下属提交的报销单' : '财务视角：复核主管已通过的单据并打款'}}
+  </view>
+</view>
+
+<view wx:if="{{list.length === 0}}" class="card">
+  <view style="text-align:center;color:#94A3B8;padding:40rpx;">暂无待办审批</view>
+</view>
+
+<view wx:for="{{list}}" wx:key="id" class="card">
+  <view style="display:flex;justify-content:space-between;">
+    <view style="font-weight:700;">{{item.title}}</view>
+    <view class="tag tag-orange">{{item.status === 'reviewing' ? '待主管审批' : '待财务复核'}}</view>
+  </view>
+  <view class="muted" style="margin-top:8rpx;">{{item.id}} · 申请人 {{item.applicant}}</view>
+  <view style="font-size:36rpx;color:#DC2626;font-weight:700;margin-top:12rpx;">¥{{item.amount}}</view>
+
+  <view wx:if="{{role !== 'employee'}}" style="display:flex;gap:20rpx;margin-top:20rpx;">
+    <button size="mini" style="flex:1;background:#059669;color:#fff;"
+      data-id="{{item.id}}" data-idx="{{index}}" bindtap="approve">通过</button>
+    <button size="mini" style="flex:1;background:#DC2626;color:#fff;"
+      data-id="{{item.id}}" bindtap="reject">驳回</button>
+  </view>
+</view>

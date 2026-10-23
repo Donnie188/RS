@@ -1,0 +1,11 @@
+{
+  "description": "青禾报销助手 - AI拍票版",
+  "appid": "touristappid",
+  "projectname": "qinghe-expense-ai",
+  "compileType": "miniprogram",
+  "libVersion": "3.0.0",
+  "setting": {
+    "es6": true,
+    "minified": true
+  }
+}

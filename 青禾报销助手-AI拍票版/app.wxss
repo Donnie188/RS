@@ -1,0 +1,40 @@
+/* app.wxss — 全局样式，深蓝主题 */
+page {
+  background: #F0F4FF;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  color: #1E293B;
+}
+
+.card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin: 20rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.06);
+}
+
+.btn-primary {
+  background: #2563EB;
+  color: #fff;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+.btn-primary::after { border: none; }
+
+.tag {
+  display: inline-block;
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+}
+.tag-blue { background: #DBEAFE; color: #1D4ED8; }
+.tag-green { background: #D1FAE5; color: #047857; }
+.tag-orange { background: #FFEDD5; color: #C2410C; }
+.tag-red { background: #FEE2E2; color: #B91C1C; }
+.tag-gray { background: #F1F5F9; color: #475569; }
+
+.muted { color: #64748B; font-size: 24rpx; }
+.title { font-size: 34rpx; font-weight: 700; color: #0F172A; }

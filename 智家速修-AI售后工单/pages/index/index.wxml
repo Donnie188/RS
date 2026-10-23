@@ -1,0 +1,37 @@
+<view style="background:linear-gradient(135deg,#7C3AED,#A78BFA);padding:48rpx 40rpx;color:#fff;border-radius:0 0 32rpx 32rpx;">
+  <view style="font-size:28rpx;opacity:.9;">智家速修 · AI 售后工单</view>
+  <view style="font-size:40rpx;font-weight:700;margin-top:8rpx;">报修进度总览</view>
+  <view style="margin-top:24rpx;display:flex;gap:40rpx;">
+    <view><view style="font-size:36rpx;font-weight:700;">{{stats.doing}}</view><view style="font-size:22rpx;opacity:.85;">处理中</view></view>
+    <view><view style="font-size:36rpx;font-weight:700;">{{stats.done}}</view><view style="font-size:22rpx;opacity:.85;">已完成</view></view>
+    <view><view style="font-size:36rpx;font-weight:700;">{{stats.total}}</view><view style="font-size:22rpx;opacity:.85;">总工单</view></view>
+  </view>
+</view>
+
+<view class="card">
+  <view style="display:flex;gap:20rpx;">
+    <view bindtap="goReport" style="flex:1;background:#EDE9FE;border-radius:16rpx;padding:28rpx;text-align:center;">
+      <view style="font-size:48rpx;">🔧</view>
+      <view style="font-weight:600;color:#6D28D9;margin-top:8rpx;">一键报修</view>
+    </view>
+    <view bindtap="goOrders" style="flex:1;background:#D1FAE5;border-radius:16rpx;padding:28rpx;text-align:center;">
+      <view style="font-size:48rpx;">📋</view>
+      <view style="font-weight:600;color:#047857;margin-top:8rpx;">我的工单</view>
+    </view>
+  </view>
+</view>
+
+<view class="card">
+  <view class="title">最近工单</view>
+  <view wx:for="{{recent}}" wx:key="id" style="padding:20rpx 0;border-bottom:1rpx solid #F1F5F9;">
+    <view style="display:flex;justify-content:space-between;align-items:center;">
+      <view>
+        <view style="font-weight:600;">{{for.device}}</view>
+        <view class="muted" style="margin-top:4rpx;">{{item.id}} · {{item.fault}}</view>
+      </view>
+      <view class="tag {{item.status==='done'?'tag-green':item.status==='escalated'?'tag-red':'tag-orange'}}">
+        {{item.status==='done'?'已完成':item.status==='escalated'?'已升级':'处理中'}}
+      </view>
+    </view>
+  </view>
+</view>

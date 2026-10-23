@@ -1,0 +1,7 @@
+{
+  "description": "智家速修 - AI售后工单",
+  "appid": "touristappid",
+  "projectname": "zhijia-repair-ai",
+  "compileType": "miniprogram",
+  "libVersion": "3.0.0"
+}

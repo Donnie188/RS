@@ -1,0 +1,41 @@
+<view class="hero" style="background:linear-gradient(135deg,#2563EB,#3B82F6);padding:48rpx 40rpx;color:#fff;border-radius:0 0 32rpx 32rpx;">
+  <view style="font-size:28rpx;opacity:.85;">你好，{{user.name}}</view>
+  <view style="font-size:40rpx;font-weight:700;margin-top:8rpx;">今日报销进度</view>
+  <view style="margin-top:24rpx;display:flex;gap:32rpx;">
+    <view><view style="font-size:36rpx;font-weight:700;">{{stats.pending}}</view><view style="font-size:22rpx;opacity:.8;">待审批</view></view>
+    <view><view style="font-size:36rpx;font-weight:700;">{{stats.paid}}</view><view style="font-size:22rpx;opacity:.8;">已打款</view></view>
+    <view><view style="font-size:36rpx;font-weight:700;">¥{{stats.monthAmount}}</view><view style="font-size:22rpx;opacity:.8;">本月累计</view></view>
+  </view>
+</view>
+
+<view class="card">
+  <view style="display:flex;gap:20rpx;margin-top:8rpx;">
+    <view bindtap="goCapture" style="flex:1;background:#DBEAFE;border-radius:16rpx;padding:28rpx;text-align:center;">
+      <view style="font-size:48rpx;">📷</view>
+      <view style="font-weight:600;color:#1D4ED8;margin-top:8rpx;">拍票报销</view>
+    </view>
+    <view bindtap="goBills" style="flex:1;background:#D1FAE5;border-radius:16rpx;padding:28rpx;text-align:center;">
+      <view style="font-size:48rpx;">📋</view>
+      <view style="font-weight:600;color:#047857;margin-top:8rpx;">我的账单</view>
+    </view>
+    <view bindtap="goApproval" style="flex:1;background:#FEF3C7;border-radius:16rpx;padding:28rpx;text-align:center;">
+      <view style="font-size:48rpx;">✅</view>
+      <view style="font-weight:600;color:#B45309;margin-top:8rpx;">审批中心</view>
+    </view>
+  </view>
+</view>
+
+<view class="card">
+  <view class="title">最近单据</view>
+  <view wx:for="{{recent}}" wx:key="id" style="padding:20rpx 0;border-bottom:1rpx solid #F1F5F9;">
+    <view style="display:flex;justify-content:space-between;align-items:center;">
+      <view>
+        <view style="font-weight:600;">{{item.title}}</view>
+        <view class="muted" style="margin-top:4rpx;">{{item.id}} · ¥{{item.amount}}</view>
+      </view>
+      <view class="tag {{item.status === 'paid' ? 'tag-green' : item.status === 'rejected' ? 'tag-red' : 'tag-orange'}}">
+        {{item.status === 'paid' ? '已打款' : item.status === 'rejected' ? '已驳回' : '审批中'}}
+      </view>
+    </view>
+  </view>
+</view>

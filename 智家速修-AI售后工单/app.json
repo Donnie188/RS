@@ -1,0 +1,31 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/report/report",
+    "pages/orders/orders",
+    "pages/engineer/engineer",
+    "pages/me/me"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#7C3AED",
+    "navigationBarTitleText": "智家速修",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F5F3FF"
+  },
+  "tabBar": {
+    "color": "#94A3B8",
+    "selectedColor": "#7C3AED",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页" },
+      { "pagePath": "pages/report/report", "text": "报修" },
+      { "pagePath": "pages/orders/orders", "text": "工单" },
+      { "pagePath": "pages/engineer/engineer", "text": "派单" },
+      { "pagePath": "pages/me/me", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,50 @@
+<!-- 拍票页 -->
+<view class="card" wx:if="{{!invoice}}">
+  <view style="text-align:center;padding:60rpx 20rpx;">
+    <view style="font-size:120rpx;">📷</view>
+    <view style="font-size:32rpx;font-weight:700;margin-top:16rpx;">拍摄发票 / 票据</view>
+    <view class="muted" style="margin-top:12rpx;">AI 自动识别金额、商家、税号并推荐科目</view>
+    <button class="btn-primary" style="margin-top:40rpx;" bindtap="doRecognize" loading="{{recognizing}}">
+      {{recognizing ? '识别中...' : '开始拍票'}}
+    </button>
+  </view>
+</view>
+
+<view wx:if="{{invoice}}">
+  <!-- 识别结果卡片 -->
+  <view class="card">
+    <view style="display:flex;justify-content:space-between;align-items:center;">
+      <view class="title">识别结果</view>
+      <view class="tag tag-green">置信度 {{invoice.confidence}}</view>
+    </view>
+    <view style="margin-top:20rpx;line-height:2;">
+      <view>票据类型：<text style="font-weight:600;">{{invoice.type}}</text></view>
+      <view>商家：{{invoice.seller}}</view>
+      <view>金额：<text style="color:#DC2626;font-size:36rpx;font-weight:700;">¥{{invoice.amount}}</text></view>
+      <view>开票日期：{{invoice.date}}</view>
+    </view>
+    <view wx:if="{{!invoice.check.pass}}" style="margin-top:16rpx;background:#FEE2E2;padding:16rpx;border-radius:8rpx;">
+      <view wx:for="{{invoice.check.issues}}" wx:key="*this" style="color:#B91C1C;font-size:24rpx;">⚠ {{item}}</view>
+    </view>
+  </view>
+
+  <!-- 填单 -->
+  <view class="card">
+    <view style="font-weight:600;margin-bottom:16rpx;">报销事由</view>
+    <input placeholder="例：国庆出差-北京客户拜访" value="{{title}}" bindinput="onTitleInput"
+      style="background:#F8FAFC;padding:20rpx;border-radius:12rpx;"/>
+
+    <view style="font-weight:600;margin:24rpx 0 16rpx;">推荐科目（AI 已选）</view>
+    <picker range="{{subjects}}" range-key="name" value="{{subjectIndex}}" bindchange="onSubjectChange">
+      <view style="background:#DBEAFE;padding:20rpx;border-radius:12rpx;color:#1D4ED8;font-weight:600;">
+        {{subjects[subjectIndex].name}} ›
+      </view>
+    </picker>
+
+    <view style="font-weight:600;margin:24rpx 0 16rpx;">备注（选填）</view>
+    <input placeholder="补充说明" value="{{remark}}" bindinput="onRemarkInput"
+      style="background:#F8FAFC;padding:20rpx;border-radius:12rpx;"/>
+  </view>
+
+  <button class="btn-primary" style="margin:24rpx;" bindtap="submit">提交报销单</button>
+</view>
