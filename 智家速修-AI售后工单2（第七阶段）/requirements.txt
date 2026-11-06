@@ -1,0 +1,12 @@
+# 第三阶段依赖（Python 3.10+）
+fastapi>=0.110          # Web 框架（SSR 页面 + REST/SSE 接口）
+uvicorn>=0.29           # ASGI 服务器
+jinja2>=3.1             # 服务端渲染模板
+python-multipart>=0.0.9 # 表单与文件上传（FastAPI Form/File 必需）
+PyJWT>=2.8              # JWT 签发与校验
+pypdf>=4.0              # PDF 文本提取（知识库上传 pdf 用）
+numpy>=1.26             # 向量计算（余弦检索）
+rank-bm25>=0.2.2        # BM25 关键词检索
+jieba>=0.42             # 中文分词
+openai>=1.30            # 大模型与 Embedding（OpenAI 兼容协议）
+python-dotenv>=1.0      # .env 配置加载

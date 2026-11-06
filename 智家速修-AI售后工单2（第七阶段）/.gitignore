@@ -1,0 +1,15 @@
+# 环境与密钥
+.env
+
+# 运行时数据（数据库与索引可随时重建）
+data/chat.db
+data/chat.db-journal
+data/chat.db-wal
+data/chat.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+backups/
