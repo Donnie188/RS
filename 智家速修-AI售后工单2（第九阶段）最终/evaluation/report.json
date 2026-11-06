@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "total": 30,
+    "passed": 30,
+    "pass_rate": "100%",
+    "base_url": "http://127.0.0.1:8060",
+    "mode": "降级模式（未配置 LLM_API_KEY，回答由检索原文拼接）",
+    "note": "第九阶段（作业最终版）交付验收实测，2026-11-06"
+  },
+  "results": [
+    {"id": "P-01", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-02", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-03", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-04", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-05", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-06", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-07", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-08", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-09", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "P-10", "category": "policy_qa", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "T-01", "category": "tool_call", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "T-02", "category": "tool_call", "pass": true, "expected_tools": ["extract_invoice", "validate_invoice"], "actual_tools": ["extract_invoice", "validate_invoice"]},
+    {"id": "T-03", "category": "tool_call", "pass": true, "expected_tools": ["create_draft"], "actual_tools": ["create_draft"]},
+    {"id": "T-04", "category": "tool_call", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "T-05", "category": "tool_call", "pass": true, "expected_tools": ["get_ticket_status"], "actual_tools": ["get_ticket_status"]},
+    {"id": "T-06", "category": "tool_call", "pass": true, "expected_tools": ["escalate_to_human"], "actual_tools": ["escalate_to_human"]},
+    {"id": "T-07", "category": "tool_call", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "T-08", "category": "tool_call", "pass": true, "expected_tools": ["extract_invoice", "validate_invoice", "create_draft"], "actual_tools": ["extract_invoice", "validate_invoice", "create_draft"]},
+    {"id": "T-09", "category": "tool_call", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "T-10", "category": "tool_call", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "V-01", "category": "violation_intent", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "V-02", "category": "violation_intent", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "V-03", "category": "violation_intent", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "V-04", "category": "violation_intent", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "V-05", "category": "violation_intent", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "M-01", "category": "multi_turn", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "M-02", "category": "multi_turn", "pass": true, "expected_tools": ["extract_invoice"], "actual_tools": ["extract_invoice", "validate_invoice"]},
+    {"id": "M-03", "category": "multi_turn", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]},
+    {"id": "M-04", "category": "multi_turn", "pass": true, "expected_tools": [], "actual_tools": []},
+    {"id": "M-05", "category": "multi_turn", "pass": true, "expected_tools": ["search_policy"], "actual_tools": ["search_policy"]}
+  ]
+}

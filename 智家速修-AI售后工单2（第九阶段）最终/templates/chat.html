@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% block title %}员工问答 · 报销助手{% endblock %}
+{% block layout %}
+<div class="chat-shell">
+  {# ---------------- 顶栏：谁登录了、知识库状态、新对话入口 ---------------- #}
+  <div class="chat-header">
+    <div>
+      <div class="title">报销制度问答助手</div>
+      <div class="meta">
+        当前用户：{{ user.display_name }}（{{ user.role_label }}）
+        {% if user.role == 'admin' %}· <a href="/admin/kb">管理后台</a>{% endif %}
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="meta" style="text-align:right;">
+      知识库：{{ kb_docs }} 份文档 / {{ kb_chunks }} 个切片<br>
+      模型：{{ llm_mode }}<br>
+      提示词模板：{{ prompt_name }}
+    </div>
+    <button class="btn btn-ghost btn-sm" id="btn-new" onclick="newSession()">新对话</button>
+    <button class="btn btn-ghost btn-sm" onclick="location.href='/logout'">退出</button>
+  </div>
+
+  {# ---------------- 消息流 ---------------- #}
+  <div class="messages" id="messages">
+    <div style="text-align:center; color:var(--muted); font-size:13px; margin-top:20px;">
+      你好，我是公司报销制度助手。可以问我差旅标准、发票要求、审批流程、报销时限等问题。<br>
+      回答末尾会附上引用的制度条文来源，可展开核对原文。
+    </div>
+  </div>
+
+  {# ---------------- 输入区 ---------------- #}
+  <div class="chat-input-bar">
+    <textarea id="input" placeholder="输入问题，Enter 发送，Shift+Enter 换行" autofocus></textarea>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn" id="btn-send" onclick="send()">发送</button>
+      <button class="btn btn-ghost" id="btn-stop" onclick="stop()" disabled>停止</button>
+    </div>
+  </div>
+  <div class="quick-questions">
+    <button onclick="ask('一线城市住宿报销标准是多少？')">一线城市住宿标准？</button>
+    <button onclick="ask('出租车发票丢了还能报销吗？')">发票丢了怎么办？</button>
+    <button onclick="ask('报销审批要多久？流程是什么？')">审批流程与时限？</button>
+    <button onclick="ask('超标住宿怎么处理？')">住宿超标怎么处理？</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * 前端交互说明（阶段 2 设计的落地）：
+ * 1) SSE 不能用 EventSource（它只支持 GET），因此用 fetch + ReadableStream
+ *    手工解析 SSE 帧，附带好处：AbortController 可以做"停止生成"；
+ * 2) 事件序列：session → status(检索中) → citations → status(生成中)
+ *    → delta×N → done；错误在流开始前走 HTTP JSON，流开始后走 error 事件；
+ * 3) 打字机效果：真实模式 delta 逐字到达；降级模式后端按 3 字/30ms 模拟流式，
+ *    前端只管追加，两种模式表现完全一致。
+ * ============================================================ */
+
+const state = {
+  sessionId: localStorage.getItem('bx_session') || null,  // 会话 ID 存本地，刷新可续聊
+  controller: null,   // 当前请求的 AbortController（停止生成用）
+  busy: false,
+};
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- 小工具 ---------- */
+function esc(s) {  // 防 XSS：模型输出的任何内容都先转义再进 DOM
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function api(path, options) {  // 统一的 JSON 接口封装：code!=0 视为失败
+  const resp = await fetch(path, options);
+  const json = await resp.json();
+  if (json.code !== 0) throw new Error(json.message || '未知错误');
+  return json.data;
+}
+
+/* ---------- 消息气泡 ---------- */
+function addMessage(role, content) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+  const who = document.createElement('div');
+  who.className = 'who';
+  who.textContent = role === 'user' ? '我' : '制度助手';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  const status = document.createElement('div');   // "正在检索制度…" 状态行
+  status.className = 'status-line';
+  status.style.display = 'none';
+
+  const body = document.createElement('div');    // 答案正文（delta 逐块追加）
+  if (content) body.textContent = content;
+
+  const citations = document.createElement('div');// 引用来源卡片区
+  citations.className = 'citations';
+
+  bubble.appendChild(status);
+  bubble.appendChild(body);
+  bubble.appendChild(citations);
+  wrap.appendChild(who);
+  wrap.appendChild(bubble);
+  $('messages').appendChild(wrap);
+  scrollBottom();
+  return { body, status, citations };
+}
+
+function scrollBottom() {
+  const box = $('messages');
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(el, text) {
+  el.style.display = 'block';
+  el.innerHTML = '<span class="spin"></span>' + esc(text);
+}
+
+function showError(bubble, message) {
+  const tip = document.createElement('div');
+  tip.className = 'error-tip';
+  tip.textContent = message;
+  bubble.body.parentNode.insertBefore(tip, bubble.body.nextSibling);
+}
+
+function renderCitations(box, items) {
+  if (!items || !items.length) return;
+  let html = '<div class="cite-title">引用的制度条文来源（' + items.length + ' 条）</div>';
+  for (const c of items) {
+    html += '<details><summary>[' + c.index + '] ' + esc(c.file) + ' 《' + esc(c.heading) + '》'
+          + (c.score ? '（相关度 ' + c.score + '）' : '') + '</summary>'
+          + '<div class="cite-text">' + esc(c.snippet) + '</div></details>';
+  }
+  box.innerHTML = html;
+}
+
+/* ---------- SSE 帧解析 ---------- */
+function parseFrame(frame) {
+  let event = 'message', data = '';
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    else if (line.startsWith('data:')) data += line.slice(5).trim();
+  }
+  try { return { event, data: JSON.parse(data) }; }
+  catch { return { event, data: {} }; }
+}
+
+/* ---------- 会话管理 ---------- */
+async function newSession() {
+  try {
+    const data = await api('/api/sessions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' });
+    state.sessionId = data.session_id;
+    localStorage.setItem('bx_session', state.sessionId);
+    $('messages').innerHTML = '';
+  } catch (e) { alert(e.message); }
+}
+
+function ask(q) {  // 快捷提问按钮
+  $('input').value = q;
+  send();
+}
+
+/* ---------- 发送与流式接收 ---------- */
+async function send() {
+  const input = $('input');
+  const question = input.value.trim();
+  if (!question || state.busy) return;
+
+  setBusy(true);
+  addMessage('user', question);
+  input.value = '';
+  const bubble = addMessage('assistant', '');
+  setStatus(bubble.status, '正在检索制度…');
+
+  state.controller = new AbortController();
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: state.sessionId, question: question }),
+      signal: state.controller.signal,
+    });
+
+    // ---- 错误第一层：流还没开始，后端返回标准 JSON（code + 中文信息） ----
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => ({ message: 'HTTP ' + resp.status }));
+      bubble.status.style.display = 'none';
+      showError(bubble, '请求失败：' + (j.message || j.detail || '未知错误'));
+      return;
+    }
+
+    // ---- 逐块读取 SSE 流 ----
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) >= 0) {        // SSE 帧以空行分隔
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        const { event, data } = parseFrame(frame);
+        handleEvent(event, data, bubble);
+      }
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      bubble.body.textContent += '\n（已停止生成）';
+    } else {
+      showError(bubble, '网络错误：' + err.message);
+    }
+  } finally {
+    bubble.status.style.display = 'none';
+    setBusy(false);
+  }
+}
+
+function handleEvent(event, data, bubble) {
+  switch (event) {
+    case 'session':                      // 新会话：保存返回的 id
+      state.sessionId = data.session_id;
+      localStorage.setItem('bx_session', state.sessionId);
+      break;
+    case 'status':                       // 状态条：检索中 → 生成中
+      setStatus(bubble.status, data.text);
+      break;
+    case 'citations':                    // 检索完成：先把依据渲染出来
+      renderCitations(bubble.citations, data.items);
+      break;
+    case 'tool_call':                    // ★阶段5：Agent 工具调用过程卡片
+      bubble.status.style.display = 'none';
+      addToolCard(bubble, data);
+      scrollBottom();
+      break;
+    case 'tool_result':                  // ★阶段5：工具执行结果（成功/拦截）
+      markToolCard(bubble, data);
+      break;
+    case 'pending_draft':                // ★阶段5：强制中断 → 渲染草稿确认卡
+      bubble.status.style.display = 'none';
+      renderDraftConfirm(bubble, data);
+      scrollBottom();
+      break;
+    case 'delta':                        // 正文逐块追加（打字机效果）
+      bubble.status.style.display = 'none';
+      bubble.body.textContent += data.text;
+      scrollBottom();
+      break;
+    case 'error':                        // 错误第二层：流内 error 事件（已自动降级）
+      showError(bubble, data.message);
+      break;
+    case 'done':                         // 收尾：展示模型/耗时等元信息
+      if (bubble.body.textContent === '') bubble.body.textContent = '（无输出）';
+      const meta = document.createElement('div');
+      meta.className = 'done-meta';
+      meta.textContent = (data.degraded ? '[降级模式] ' : '')
+        + (data.model ? '模型：' + data.model + ' · ' : '')
+        + (data.steps ? 'Agent ' + data.steps + ' 轮决策 · ' : '')
+        + '耗时 ' + (data.latency_ms / 1000).toFixed(1) + ' 秒';
+      bubble.citations.parentNode.insertBefore(meta, bubble.citations);
+      scrollBottom();
+      break;
+  }
+}
+
+/* ---------- ★阶段5：工具调用过程卡片 ----------
+ * 每次模型决定调用工具，就在气泡里插一行"⚙ 工具名"，执行完打勾或标红。
+ * 被状态机拦截的调用（blocked）会显示"已拦截"，答辩演示跳步防护时一目了然。 */
+function addToolCard(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'tool-card';
+  card.id = 'tool-' + data.step + '-' + data.tool;
+  const label = {
+    'search_policy': '正在检索制度…',
+    'extract_invoice': '正在抽取报销要素…',
+    'validate_invoice': '正在执行制度校验…',
+    'create_draft': '正在创建报销草稿…',
+    'submit_ticket': '正在提交报销单…',
+    'escalate_to_human': '正在转人工…',
+  }[data.tool] || ('调用 ' + data.tool);
+  card.innerHTML = '<span class="spin"></span>' + esc(label);
+  bubble.body.parentNode.insertBefore(card, bubble.citations);
+}
+
+function markToolCard(bubble, data) {
+  const card = document.getElementById('tool-' + data.step + '-' + data.tool);
+  if (!card) return;
+  card.classList.add('done');
+  card.innerHTML = data.ok
+    ? '✓ ' + esc(({search_policy:'制度检索完成', extract_invoice:'要素抽取完成',
+       validate_invoice:'制度校验完成', create_draft:'草稿已创建（待确认）',
+       submit_ticket:'报销单已提交', escalate_to_human:'已转人工'}[data.tool] || data.tool))
+    : '✕ ' + esc(data.message || '调用被拦截');
+}
+
+/* ---------- ★阶段5：草稿确认卡（human-in-the-loop 中断点） ----------
+ * 后端在 create_draft 前强制暂停，把草稿内容推过来等员工拍板。
+ * 确认 → POST /api/drafts/{id}/confirm（服务端直接提交，不再经过模型）；
+ * 取消 → POST /api/drafts/{id}/cancel（草稿作废，会话回到可重新发起状态）。 */
+function renderDraftConfirm(bubble, data) {
+  const items = data.items || {};
+  const card = document.createElement('div');
+  card.className = 'draft-card';
+  card.innerHTML =
+    '<div class="draft-title">📋 报销草稿（提交前请确认）</div>'
+    + '<table class="draft-table">'
+    + '<tr><td>事由</td><td>' + esc(items.note || '-') + '</td></tr>'
+    + '<tr><td>金额</td><td>' + esc(items.amount != null ? items.amount + ' 元' : '-') + '</td></tr>'
+    + '<tr><td>类别</td><td>' + esc(items.category || '-') + '</td></tr>'
+    + '<tr><td>城市/职级</td><td>' + esc((items.city || '-') + ' · ' + (items.level || '-')) + '</td></tr>'
+    + (items.nights ? '<tr><td>晚数</td><td>' + esc(items.nights) + ' 晚</td></tr>' : '')
+    + (items.invoice_date ? '<tr><td>发票日期</td><td>' + esc(items.invoice_date) + '</td></tr>' : '')
+    + '<tr><td>制度依据</td><td>' + esc(items.standard_ref || '-') + '</td></tr>'
+    + '</table>'
+    + '<div class="draft-actions">'
+    + '<button class="btn" id="btn-confirm">确认提交</button>'
+    + '<button class="btn btn-ghost" id="btn-cancel">取消</button>'
+    + '</div>';
+  bubble.body.parentNode.insertBefore(card, bubble.citations);
+  $('btn-confirm').onclick = () => draftAction(bubble, data.draft_id, 'confirm');
+  $('btn-cancel').onclick = () => draftAction(bubble, data.draft_id, 'cancel');
+}
+
+async function draftAction(bubble, draftId, action) {
+  try {
+    const data = await api('/api/drafts/' + draftId + '/' + action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: state.sessionId, confirm_text: '确认提交' }),
+    });
+    const card = bubble.body.parentNode.querySelector('.draft-card');
+    if (card) {
+      card.querySelector('.draft-actions').innerHTML =
+        action === 'confirm'
+          ? '<span style="color:var(--ok); font-weight:500;">✓ 已提交，报销单号 ' + esc(data.ticket_id) + '</span>'
+          : '<span style="color:var(--muted);">已取消该草稿</span>';
+    }
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function stop() {
+  if (state.controller) state.controller.abort();
+}
+
+function setBusy(b) {
+  state.busy = b;
+  $('btn-send').disabled = b;
+  $('btn-stop').disabled = !b;
+}
+
+/* ---------- 页面加载：恢复上次的会话历史 ---------- */
+(async function init() {
+  if (!state.sessionId) return;
+  try {
+    const data = await api('/api/sessions/' + state.sessionId + '/messages');
+    for (const m of data.messages) {
+      const bubble = addMessage(m.role, m.content);
+      renderCitations(bubble.citations, m.citations);
+    }
+  } catch (e) {
+    // 会话可能已被删除：清空本地缓存，等下次提问自动新建
+    state.sessionId = null;
+    localStorage.removeItem('bx_session');
+  }
+})();
+
+/* Enter 发送 / Shift+Enter 换行 */
+$('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+</script>
+{% endblock %}
