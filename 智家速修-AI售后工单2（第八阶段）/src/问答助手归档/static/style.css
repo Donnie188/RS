@@ -1,0 +1,218 @@
+/* ============================================================
+   报销助手 · 第三阶段管理后台 —— SaaS 风格样式表
+   设计基调：浅灰页面底 + 白色卡片 + 蓝色主色 + 深色侧边栏
+   ============================================================ */
+
+:root {
+  --primary: #2563eb;         /* 主色：按钮 / 链接 / 选中态 */
+  --primary-dark: #1e40af;
+  --bg: #f5f6f8;              /* 页面底色 */
+  --card: #ffffff;            /* 卡片 */
+  --line: #e5e7eb;            /* 分隔线 */
+  --text: #1f2937;            /* 正文 */
+  --muted: #6b7280;           /* 次要文字 */
+  --danger: #dc2626;          /* 危险操作 / 违规标记 */
+  --warn: #d97706;            /* 降级提示 */
+  --ok: #059669;              /* 成功态 */
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---------------- 通用布局：侧边栏 + 内容区 ---------------- */
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: #1e293b; color: #cbd5e1;
+  display: flex; flex-direction: column;
+}
+.sidebar .logo {
+  padding: 20px 16px; font-size: 15px; font-weight: 600;
+  color: #fff; border-bottom: 1px solid #334155;
+}
+.sidebar nav { display: flex; flex-direction: column; padding: 12px 8px; gap: 2px; }
+.sidebar nav a {
+  padding: 10px 12px; color: #cbd5e1; border-radius: 8px; font-size: 14px;
+}
+.sidebar nav a:hover { background: #334155; color: #fff; text-decoration: none; }
+.sidebar nav a.active { background: var(--primary); color: #fff; }
+.sidebar .sidebar-footer {
+  margin-top: auto; padding: 14px 16px; font-size: 12px; color: #94a3b8;
+  border-top: 1px solid #334155;
+}
+.sidebar .sidebar-footer a { color: #93c5fd; margin-left: 8px; }
+
+.content { flex: 1; padding: 28px 32px; min-width: 0; }
+.page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.page-sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+/* ---------------- 卡片 / 表格 / 表单 ---------------- */
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+}
+.card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
+th { background: #f9fafb; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr:hover td { background: #f9fafb; }
+
+input[type="text"], input[type="password"], input[type="date"], input[type="file"],
+select, textarea {
+  border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 10px;
+  font-size: 14px; font-family: inherit; background: #fff; color: var(--text);
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid #bfdbfe; border-color: var(--primary); }
+textarea { width: 100%; min-height: 160px; resize: vertical; line-height: 1.6; }
+
+.btn {
+  display: inline-block; border: none; border-radius: 8px; cursor: pointer;
+  background: var(--primary); color: #fff; font-size: 14px;
+  padding: 8px 16px; font-family: inherit;
+}
+.btn:hover { background: var(--primary-dark); }
+.btn:disabled { background: #9ca3af; cursor: not-allowed; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-danger { background: var(--danger); }
+.btn-danger:hover { background: #b91c1c; }
+.btn-ghost { background: #fff; color: var(--text); border: 1px solid #d1d5db; }
+.btn-ghost:hover { background: #f3f4f6; }
+
+/* ---------------- 提示条 / 徽标 ---------------- */
+.flash {
+  padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;
+  background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;
+}
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; background: #e5e7eb; color: var(--muted);
+}
+.badge-admin { background: #ede9fe; color: #5b21b6; }
+.badge-flag { background: #fee2e2; color: #991b1b; }
+.badge-warn { background: #fef3c7; color: #92400e; }
+.badge-ok { background: #d1fae5; color: #065f46; }
+
+/* ---------------- 登录页 ---------------- */
+.login-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #eff6ff 0%, #f5f6f8 60%);
+}
+.login-card {
+  width: 360px; background: #fff; border: 1px solid var(--line);
+  border-radius: 14px; padding: 32px; box-shadow: 0 8px 24px rgba(31,41,55,.06);
+}
+.login-card h1 { font-size: 18px; margin-bottom: 4px; }
+.login-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+.login-card label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+.login-card input { width: 100%; }
+.login-card .btn { width: 100%; margin-top: 20px; padding: 10px; }
+.login-error { color: var(--danger); font-size: 13px; margin-top: 12px; }
+
+/* ---------------- 问答页（员工入口） ---------------- */
+.chat-shell { max-width: 860px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; padding: 16px; }
+.chat-header {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.chat-header .title { font-weight: 600; font-size: 15px; }
+.chat-header .meta { color: var(--muted); font-size: 12px; }
+.chat-header .spacer { flex: 1; }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 4px; }
+
+.msg { display: flex; gap: 10px; }
+.msg.user { justify-content: flex-end; }
+.msg .bubble {
+  max-width: 76%; padding: 12px 14px; border-radius: 12px; background: #fff;
+  border: 1px solid var(--line); white-space: pre-wrap; word-break: break-word;
+}
+.msg.user .bubble { background: var(--primary); color: #fff; border-color: var(--primary); }
+.msg .who { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.msg.user .who { text-align: right; }
+
+.status-line { color: var(--muted); font-size: 12px; padding: 2px 2px 8px; }
+.status-line .spin {
+  display: inline-block; width: 12px; height: 12px; border: 2px solid #bfdbfe;
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-tip {
+  background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+  font-size: 12px; padding: 6px 10px; border-radius: 8px; margin: 6px 0;
+}
+
+.citations { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.citations .cite-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.citations details {
+  background: #f9fafb; border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 10px; margin-bottom: 6px; font-size: 12px;
+}
+.citations summary { cursor: pointer; color: var(--primary); }
+.citations .cite-text { color: var(--muted); margin-top: 6px; white-space: pre-wrap; }
+
+.done-meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+.chat-input-bar {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px; display: flex; gap: 10px; margin-top: 14px;
+}
+.chat-input-bar textarea { flex: 1; min-height: 48px; max-height: 140px; }
+
+.quick-questions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.quick-questions button {
+  border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--muted);
+}
+.quick-questions button:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ============================================================
+   ★阶段5新增：Agent 过程卡片 / 草稿确认卡
+   ============================================================ */
+
+/* 工具调用过程行：执行中带旋转图标，完成后打勾/标红 */
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.tool-card.done { color: var(--ok); }
+
+/* 草稿确认卡：human-in-the-loop 中断时员工拍板的界面 */
+.draft-card {
+  background: #fff;
+  border: 1.5px solid var(--primary);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 10px 0;
+  max-width: 480px;
+}
+.draft-title { font-weight: 500; margin-bottom: 10px; }
+.draft-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.draft-table td {
+  padding: 5px 8px;
+  border-bottom: 1px dashed var(--line);
+  vertical-align: top;
+}
+.draft-table td:first-child { color: var(--muted); width: 84px; white-space: nowrap; }
+.draft-actions { display: flex; gap: 10px; margin-top: 12px; }

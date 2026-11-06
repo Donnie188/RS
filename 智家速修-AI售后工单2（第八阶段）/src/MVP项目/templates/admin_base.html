@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}管理后台 · 报销助手{% endblock %}
+{% block layout %}
+{# 管理后台公共骨架：深色侧边栏 + 内容区。页面通过 block content 填充。 #}
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">报销助手 · 管理后台</div>
+    <nav>
+      {# 侧边栏高亮：直接用 request.url.path 判断，不需要后端额外传变量 #}
+      <a href="/admin/kb" class="{% if request.url.path.startswith('/admin/kb') %}active{% endif %}">制度知识库</a>
+      <a href="/admin/prompts" class="{% if request.url.path.startswith('/admin/prompts') %}active{% endif %}">提示词模板</a>
+      <a href="/admin/audit" class="{% if request.url.path.startswith('/admin/audit') %}active{% endif %}">对话审计</a>
+      <a href="/">返回问答</a>
+    </nav>
+    <div class="sidebar-footer">
+      {{ user.display_name }}
+      <span class="badge badge-admin">{{ user.role_label }}</span>
+      <a href="/logout">退出</a>
+    </div>
+  </aside>
+  <main class="content">
+    {% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

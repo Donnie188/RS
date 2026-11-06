@@ -1,0 +1,56 @@
+{% extends "admin_base.html" %}
+{% block title %}制度知识库 · 报销助手{% endblock %}
+{% block content %}
+<div class="page-title">制度知识库管理</div>
+<div class="page-sub">上传 Markdown / PDF 制度文档，系统自动切片并向量化入库；检索立即使用最新文档。</div>
+
+<div class="card">
+  <h3>上传制度文档</h3>
+  <form action="/admin/kb/upload" method="post" enctype="multipart/form-data"
+        style="display:flex; gap:10px; align-items:center;">
+    <input type="file" name="file" accept=".md,.markdown,.pdf" required>
+    <button class="btn" type="submit">上传并入库</button>
+  </form>
+  <div style="color:var(--muted); font-size:12px; margin-top:8px;">
+    向量模式：{{ embed_mode }} ·
+    单文件上限 10MB · 上传后自动按标题分节 + {{ 500 }} 字切片（与阶段 1 同源算法）
+  </div>
+</div>
+
+<div class="card">
+  <h3>文档列表（{{ docs|length }}）</h3>
+  {% if docs %}
+  <table>
+    <tr><th>ID</th><th>文件名</th><th>类型</th><th>正文字数</th><th>切片数</th><th>上传人</th><th>上传时间</th><th>操作</th></tr>
+    {% for d in docs %}
+    <tr>
+      <td>{{ d.id }}</td>
+      <td>{{ d.filename }}</td>
+      <td><span class="badge">{{ d.source_type }}</span></td>
+      <td>{{ d.char_count }}</td>
+      <td>{{ d.chunk_count }}</td>
+      <td>{{ d.uploader or '-' }}</td>
+      <td>{{ d.created_at }}</td>
+      <td>
+        {# 删除是危险操作：加确认弹窗 #}
+        <form method="post" action="/admin/kb/{{ d.id }}/delete"
+              onsubmit="return confirm('确认删除文档「{{ d.filename }}」？其全部切片将同时删除。')"
+              style="display:inline;">
+          <button class="btn btn-sm btn-danger" type="submit">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div style="margin-top:12px;">
+    <form method="post" action="/admin/kb/revectorize"
+          onsubmit="return confirm('将用当前向量配置重新向量化全部切片，可能产生 API 费用，确认？')">
+      <button class="btn btn-sm btn-ghost" type="submit">全部重新向量化</button>
+      <span style="color:var(--muted); font-size:12px;">（更换 Embedding 供应商或维度后使用）</span>
+    </form>
+  </div>
+  {% else %}
+  <div style="color:var(--muted)">暂无文档，请先上传。上传后员工问答才有依据。</div>
+  {% endif %}
+</div>
+{% endblock %}
