@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}登录 · 报销助手{% endblock %}
+{% block layout %}
+<div class="login-wrap">
+  <form class="login-card" method="post" action="/login">
+    <h1>报销助手 · 管理系统</h1>
+    <div class="sub">第三阶段：登录鉴权 + 知识库管理 + 提示词管理 + 对话审计</div>
+
+    <label>用户名</label>
+    <input type="text" name="username" required autofocus autocomplete="username"
+           placeholder="admin / emp001 / emp002">
+
+    <label>密码</label>
+    <input type="password" name="password" required autocomplete="current-password"
+           placeholder="admin123 / emp123456">
+
+    <button class="btn" type="submit">登 录</button>
+
+    {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+  </form>
+</div>
+{% endblock %}
