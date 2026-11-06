@@ -271,85 +271,168 @@ def _rule_decide(session_id: str, question: str, messages: list[dict],
     （{"type":"answer"} 或 {"type":"tool_calls", ...}），因此下游循环代码
     一行不用改。注释明确标注：**这是演示用模拟决策，生产环境必须接真模型**。
 
-    覆盖三类典型意图（与 docs/阶段5-典型对话轨迹.md 一一对应）：
-      a. 查制度（含"标准/多少/规定/能不能报"但无金额）→ search_policy → 回答
-      b. 报销一笔费用（含金额）→ extract → validate → create_draft
-      c. 确认后提交（会话处于 draft_confirmed）→ submit_ticket
+    意图判定优先级（第六阶段评测驱动的修正版）：
+      0. 回填感知：本轮刚执行完的工具，其结果直接决定下一步（不再重复意图判定）
+      1. 超标/争议咨询 → 查制度（不管句子里有没有金额，都是在问规则）
+      2. 升级人工 / 违规请求拒绝 / 提交确认类 / 查进度 / 建单 / 发起报销
+      3. 制度问答 → search_policy；兜底也查制度（答非所问时至少给引用）
 
-    回填感知：真实 Agent 的"再决策"依据是上下文里的工具结果（role=tool）。
-    规则决策器同样要读回填结果，否则会陷入"永远再查一次"的死循环。
+    关键修正（对应评测用例 P-02~P-07 / T-02 / T-07 等）：
+      - "提交报销申请要多长时间"是制度问句，不是提交动作——问句关键词优先；
+      - extract/validate 不再在决策器内部"偷偷执行"，而是产出真正的工具调用，
+        让 tool_call/tool_result 事件可观测（与真实 FC 行为对齐）；
+      - 校验通过后不再无条件建单：只有员工明确要求"建单/发起报销"才建。
     """
     allowed = {s["function"]["name"] for s in schema_list}
-
-    # ---- 回填感知：上一轮工具已经执行过 → 基于结果做"再决策" ----
-    tool_msgs = [m for m in messages if m.get("role") == "tool"]
-    if tool_msgs:
-        try:
-            last = json.loads(tool_msgs[-1]["content"])
-        except (json.JSONDecodeError, TypeError):
-            last = {}
-        if isinstance(last, dict) and "hits" in last:
-            # search_policy 已执行 → 降级拼接制度原文作答（与阶段 3 降级口径一致）
-            return {"type": "answer",
-                    "content": llm.build_degraded_answer(question, last["hits"])}
-        # create_draft 结果不会出现在这里——loop 在该工具完成后立即中断
-
     state = db.get_agent_state(session_id)
 
-    # --- 场景 c：用户已确认草稿，直接提交 ---
-    if "submit_ticket" in allowed and any(k in question for k in ("确认", "提交", "没错", "可以")):
-        draft = db.get_pending_draft(session_id)
-        if draft:
-            return {"type": "tool_calls", "tool_calls": [
-                {"id": "c1", "name": "submit_ticket", "arguments": {"draft_id": draft["draft_id"]}}]}
-
-    # --- 场景 a：纯制度问答（不含金额，或明确在问标准/规定）---
-    has_amount = any(k in question for k in ("元", "块", "¥", "￥")) or "报销" in question and "标准" not in question
-    asking_policy = any(k in question for k in ("标准", "多少", "规定", "制度", "能不能报", "可以报吗", "怎么报"))
-    if not has_amount and asking_policy:
+    def _search() -> dict:
         return {"type": "tool_calls", "tool_calls": [
             {"id": "a1", "name": "search_policy", "arguments": {"query": question, "top_k": 3}}]}
 
-    # --- 场景 b：报销请求（含金额）→ 抽取要素 ---
-    if "extract_invoice" in allowed:
-        ext = T.TOOL_IMPLS["extract_invoice"](None, session_id, {"raw_text": question})
-        fields, missing = ext["fields"], ext["missing"]
+    def _missing_ask(missing: list) -> dict:
+        q = "、".join({"amount": "报销金额", "nights": "住宿晚数", "city": "城市",
+                       "invoice_date": "发票日期", "category": "费用类别"}.get(k, k)
+                      for k in missing)
+        return {"type": "answer", "content":
+                f"好的，我可以帮您发起报销。还差几项信息：{q}。"
+                f"例如可以说'住宿 3 晚共 1500 元，发票日期 2026-10-20'。"}
 
-        if missing:
-            # 信息不全：让"模型"（此处为规则）生成追问话术
-            q = "、".join({"amount": "报销金额", "nights": "住宿晚数", "city": "城市",
-                           "invoice_date": "发票日期", "category": "费用类别"}.get(k, k) for k in missing)
-            return {"type": "answer", "content":
-                    f"好的，我可以帮您发起报销。还差几项信息：{q}。"
-                    f"例如可以说'住宿 3 晚共 1500 元，发票日期 2026-10-20'。"}
+    # ---- 0. 回填感知：上一轮工具已经执行过 → 基于结果做"再决策" ----
+    tool_msgs = [m for m in messages if m.get("role") == "tool"]
+    last: dict = {}
+    if tool_msgs:
+        try:
+            parsed = json.loads(tool_msgs[-1]["content"])
+            if isinstance(parsed, dict):
+                last = parsed
+        except (json.JSONDecodeError, TypeError):
+            last = {}
 
-        # 信息齐了 → 一次产出"校验 + 建草稿"两个连续调用（并行工具调用形态）。
-        # loop 会按顺序执行：validate 先执行并回填，create_draft 拿着它的 check_id
-        # 通过服务端凭证校验——顺序约束在服务端依旧被强制，这里只是决策的表达形式。
-        vc = T.TOOL_IMPLS["validate_invoice"](None, session_id, fields)
-        if vc["result"] == "fail":
-            lines = "；".join(v["message"] for v in vc["violations"])
+    if "hits" in last:
+        # search_policy 已执行 → 降级拼接制度原文作答（与阶段 3 降级口径一致）
+        return {"type": "answer",
+                "content": llm.build_degraded_answer(question, last["hits"])}
+
+    if "fields" in last and "missing" in last:
+        # extract_invoice 已执行：没齐就追问，齐了就产出【显式】校验调用
+        if last["missing"]:
+            return _missing_ask(last["missing"])
+        return {"type": "tool_calls", "tool_calls": [
+            {"id": "b2", "name": "validate_invoice", "arguments": last["fields"]}]}
+
+    if "violations" in last and "result" in last:
+        # validate_invoice 已执行
+        if last["result"] == "fail":
+            lines = "；".join(v["message"] for v in last["violations"])
             return {"type": "answer", "content":
-                    f"❌ 校验未通过：{lines}\n\n本次校验编号 {vc['check_id']} 已留痕，"
+                    f"❌ 校验未通过：{lines}\n\n本次校验编号 {last.get('check_id', '')} 已留痕，"
                     f"补充合规信息后可重新发起。"}
-        # pass → 直接产出"校验 + 建草稿"两个调用。
-        # 不需要检查 create_draft 是否在 allowed 里：loop 按顺序执行，
-        # validate 执行完会把会话状态推进到 validated 并回填结果，
-        # create_draft 的合法性最终由服务端凭证校验兜底（第 3 道防御）。
-        return {"type": "tool_calls", "tool_calls": [
-            {"id": "b1", "name": "validate_invoice", "arguments": fields},
-            {"id": "b2", "name": "create_draft",
-             "arguments": {"check_id": vc["check_id"],
-                           "note": f"{fields.get('category','费用')}报销"
-                                   + (f"（{fields.get('city')}）" if fields.get("city") else "")}}]}
+        # pass：按员工原始诉求决定是否自动建单——明确要求"建"才建，
+        # 只是"查一查/能不能报"的只答复校验结论（第六阶段评测修正点）
+        first_user = next((m["content"] for m in messages if m.get("role") == "user"),
+                          question)
+        if "create_draft" in allowed and any(
+                k in first_user for k in ("建", "发起报销", "直接报", "帮我报销")):
+            check = db.get_latest_valid_check(session_id)
+            if check:
+                return {"type": "tool_calls", "tool_calls": [
+                    {"id": "b3", "name": "create_draft",
+                     "arguments": {"check_id": check["check_id"],
+                                   "note": "住宿报销" if "住宿" in first_user else "费用报销"}}]}
+        return {"type": "answer", "content":
+                "✅ 发票校验通过，符合报销标准。如需创建报销单，请回复"
+                "'帮我把报销单草稿建出来'，我会在建单后暂停流程等待您确认。"}
 
-    # --- 兜底：查制度 ---
-    if "search_policy" in allowed:
+    if "ticket_id" in last and "status" in last:
+        # get_ticket_status / submit_ticket 已执行 → 直接播报结果
+        return {"type": "answer", "content":
+                f"工单 {last['ticket_id']} 当前状态：{last['status']}。"
+                f"报销审核进度也可以在财务系统'我的报销'模块查询。"}
+
+    if last.get("message") and "escalated" in state:
+        # escalate_to_human 已执行 → 转述转人工结果
+        return {"type": "answer", "content": last["message"]}
+
+    # ---- 1. 意图关键词组 ----
+    asking_policy = any(k in question for k in (
+        "标准", "多少", "多长时间", "多久", "规定", "制度", "能不能报", "可以报吗",
+        "怎么报", "怎么", "哪些", "什么", "需要什么", "审批", "吗", "期限"))
+    has_amount = any(k in question for k in ("元", "块", "¥", "￥"))
+
+    # 1.1 超标/争议咨询：句子里带不带金额都是在问规则 → 查制度
+    if any(k in question for k in ("超标", "超了")) and any(
+            k in question for k in ("怎么办", "怎么处理", "怎么算", "承担", "掏钱", "吗")):
+        return _search()
+
+    # 1.2 升级人工：Agent 的"承认做不到"出口
+    if "escalate_to_human" in allowed and any(
+            k in question for k in ("转人工", "人工客服", "解决不了", "投诉")):
         return {"type": "tool_calls", "tool_calls": [
-            {"id": "z1", "name": "search_policy", "arguments": {"query": question, "top_k": 3}}]}
-    return {"type": "answer", "content": "抱歉，这个问题我需要转人工处理。"
-            if "escalate_to_human" not in allowed else
-            "抱歉，这个问题我无法独立处理，已为您转人工。"}
+            {"id": "e1", "name": "escalate_to_human",
+             "arguments": {"reason": "用户异议", "detail": question[:100]}}]}
+
+    # 1.3 违规/作弊请求：明确拒绝并给出合规指引，不调任何工具、不编造规则
+    if any(k in question for k in ("改成", "改一下", "篡改", "伪造", "PS", "修图",
+                                   "重复报", "再报一次", "编一个", "虚假", "私了")):
+        return {"type": "answer", "content":
+                "❌ 这个忙我不能帮：伪造或篡改票据、重复报销、虚假报销属于严重违规，"
+                "一经查实将追回全部款项，视情节给予警告直至解除劳动合同，"
+                "涉嫌违法的会移交司法机关。\n\n"
+                "合规做法：发票问题联系开票方重新开具；无票支出需提供替代凭证并附书面"
+                "情况说明，经部门负责人与财务双重审批。"}
+
+    # 1.4 查进度（优先于提交类：'刚才提交的那个工单到哪一步了'不是提交动作）
+    if "get_ticket_status" in allowed and any(
+            k in question for k in ("到哪一步", "进度", "工单状态", "查一下工单",
+                                    "看看上次", "上次提交", "提交的那个")):
+        return {"type": "tool_calls", "tool_calls": [
+            {"id": "s1", "name": "get_ticket_status", "arguments": {}}]}
+
+    # 1.5 提交/确认类
+    if state == "submitted" and any(k in question for k in ("确认", "提交", "成功")):
+        # 提交是终态动作，由确认接口直接完成（不经模型）；这里只做状态播报
+        return {"type": "answer", "content":
+                "您的报销单已通过确认卡确认并提交完成。提交动作由确认接口直接执行，"
+                "无需再次提交；可在财务系统'我的报销'模块查询审核进度。"}
+    if any(k in question for k in ("提交", "打给我", "打款", "到账")) and not asking_policy:
+        if "submit_ticket" in allowed:
+            draft = db.get_pending_draft(session_id)
+            if draft:
+                return {"type": "tool_calls", "tool_calls": [
+                    {"id": "c1", "name": "submit_ticket",
+                     "arguments": {"draft_id": draft["draft_id"]}}]}
+        return {"type": "answer", "content":
+                "提交需要走完整流程：校验发票 → 创建报销单草稿 → 您在确认卡上确认 → "
+                "系统提交付款。目前还没有可提交的报销单，请先提供发票信息。"}
+
+    # 1.6 建单意图：必须先有有效校验凭证（服务端状态机 R1-R7 兜底）
+    if any(k in question for k in ("建草稿", "建单", "创建报销", "草稿建", "建出来",
+                                   "建一个报销", "把报销单草稿", "草稿建出来")):
+        check = db.get_latest_valid_check(session_id) if "create_draft" in allowed else None
+        if check:
+            return {"type": "tool_calls", "tool_calls": [
+                {"id": "b4", "name": "create_draft",
+                 "arguments": {"check_id": check["check_id"],
+                               "note": "住宿报销" if "住宿" in question else "费用报销"}}]}
+        return {"type": "answer", "content":
+                "创建报销单前必须先通过发票校验（防止无凭证建单）。请提供发票信息"
+                "（金额、城市、入住晚数、发票日期），我先帮您校验，通过后再建单。"}
+
+    # 1.7 发起报销：明确的报销动作短语，或【发票语境下的】金额 → 抽取要素。
+    # 注意："金额超过 20000 元需要谁审批"这类制度问句虽然带金额，
+    # 但没有发票语境词，不能误判为发起报销（第六阶段评测 P-05 修正点）。
+    invoice_context = any(k in question for k in (
+        "发票", "住宿", "花了", "金额是", "费用是", "晚", "报销这笔", "打车", "餐费"))
+    if "extract_invoice" in allowed and (
+            invoice_context and has_amount or any(
+                k in question for k in ("帮我报销", "我要报销", "发起报销", "报一笔",
+                                        "继续校验", "补上", "补充"))):
+        return {"type": "tool_calls", "tool_calls": [
+            {"id": "b1", "name": "extract_invoice", "arguments": {"raw_text": question}}]}
+
+    # ---- 2. 制度问答 / 兜底：查制度（有引用总比硬编强） ----
+    return _search()
 
 
 def _finish(session_id: str, steps: int, text: str, degraded: bool, model_name: str,

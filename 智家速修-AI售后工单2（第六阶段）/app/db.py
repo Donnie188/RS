@@ -632,6 +632,18 @@ def get_pending_draft(session_id: str) -> sqlite3.Row | None:
         " ORDER BY created_at DESC LIMIT 1", (session_id,))
 
 
+def get_latest_valid_check(session_id: str) -> sqlite3.Row | None:
+    """取本会话最近一张【未消费、未过期、校验通过】的凭证。
+
+    供降级决策器在建单时取 check_id（真实模型会从早前的 validate 工具结果
+    里拿到；降级模式直接以数据库事实为准，与 allowed_tools 的判定口径一致）。
+    """
+    return query_one(
+        "SELECT check_id FROM validation_records WHERE session_id = ? AND result = 'pass'"
+        " AND consumed = 0 AND expires_at > ? ORDER BY created_at DESC LIMIT 1",
+        (session_id, now_str()))
+
+
 # ---- 工具调用日志（阶段5 每轮决策记录，供后续轨迹分析与成功率统计） ----
 
 def log_tool_call(session_id: str, step: int, tool: str, args: dict | None,

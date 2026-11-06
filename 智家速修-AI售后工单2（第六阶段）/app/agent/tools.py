@@ -134,6 +134,22 @@ TOOL_SCHEMAS: dict[str, dict] = {
             },
         },
     },
+    "get_ticket_status": {
+        "type": "function",
+        "function": {
+            "name": "get_ticket_status",
+            "description": "查询本会话已提交报销工单的当前状态（只读，不改变任何流程状态）。"
+                           "不传 ticket_id 时默认查本会话最近一笔已提交工单。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticket_id": {"type": "string",
+                                  "description": "报销工单号（TK 开头），可省略"},
+                },
+                "required": [],
+            },
+        },
+    },
     "escalate_to_human": {
         "type": "function",
         "function": {
@@ -166,7 +182,7 @@ STATE_TOOLS: dict[str, list[str]] = {
                      "escalate_to_human"],                      # 有有效 pass 凭证 → 允许建草稿
     "draft_pending": ["search_policy", "escalate_to_human"],    # 等确认中：冻结建单类工具
     "draft_confirmed": ["search_policy", "submit_ticket", "escalate_to_human"],
-    "submitted":    ["search_policy", "escalate_to_human"],
+    "submitted":    ["search_policy", "get_ticket_status", "escalate_to_human"],
 }
 
 
@@ -423,6 +439,30 @@ def _tool_submit_ticket(rag: RagService, session_id: str, args: dict) -> dict:
     return {"ticket_id": ticket_id, "status": "submitted", "idempotent": False}
 
 
+def _tool_get_ticket_status(rag: RagService, session_id: str, args: dict) -> dict:
+    """T7 工单状态查询（只读）：按工单号查本会话报销单的当前状态。
+
+    权限约束：只允许查本会话的工单（session_id 过滤），杜绝横向越权查询。
+    ticket_id 缺省时查本会话最近一笔已提交工单（贴近真实口语"上次那个单"）。
+    """
+    ticket_id = (args.get("ticket_id") or "").strip()
+    if ticket_id:
+        row = db.query_one(
+            "SELECT draft_id, ticket_id, status, items, updated_at FROM drafts"
+            " WHERE ticket_id = ? AND session_id = ?",
+            (ticket_id, session_id))
+    else:
+        row = db.query_one(
+            "SELECT draft_id, ticket_id, status, items, updated_at FROM drafts"
+            " WHERE session_id = ? AND ticket_id IS NOT NULL"
+            " ORDER BY updated_at DESC LIMIT 1", (session_id,))
+    if row is None:
+        return {"error": "未找到对应的报销工单，请确认工单号是否正确。"}
+    return {"ticket_id": row["ticket_id"], "status": row["status"],
+            "draft_id": row["draft_id"], "updated_at": row["updated_at"],
+            "message": "状态查询完成。"}
+
+
 def _tool_escalate_to_human(rag: RagService, session_id: str, args: dict) -> dict:
     """T8 升级人工：Agent 的"承认做不到"出口。写审计、改状态，避免硬编答案。"""
     sid = session_id
@@ -438,5 +478,6 @@ TOOL_IMPLS = {
     "validate_invoice":   _tool_validate_invoice,
     "create_draft":       _tool_create_draft,
     "submit_ticket":      _tool_submit_ticket,
+    "get_ticket_status":  _tool_get_ticket_status,
     "escalate_to_human":  _tool_escalate_to_human,
 }
