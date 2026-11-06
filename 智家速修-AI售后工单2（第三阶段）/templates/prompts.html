@@ -1,0 +1,46 @@
+{% extends "admin_base.html" %}
+{% block title %}提示词模板 · 报销助手{% endblock %}
+{% block content %}
+<div class="page-title">提示词模板管理</div>
+<div class="page-sub">系统提示词存在数据库中，每次修改保存后立即对问答生效（无需重启）；历史版本保留，可随时切换回滚。</div>
+
+<div class="card">
+  <h3>编辑当前生效模板
+    {% if active %}<span class="badge badge-ok">当前生效：{{ active.name }}</span>{% endif %}
+  </h3>
+  <form method="post" action="/admin/prompts/save">
+    <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">模板名（留空自动按版本号生成）</label>
+    <input type="text" name="name" placeholder="例如：严格版 / 口语化版" style="width:280px; margin-bottom:10px;">
+    <textarea name="content" id="prompt-content"
+              required>{% if active %}{{ active.content }}{% endif %}</textarea>
+    <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+      <button class="btn" type="submit">保存并立即生效</button>
+      <span style="color:var(--muted);font-size:12px;">保存会自动把旧版本下线，但不会删除，可在下方随时激活回来。</span>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>版本历史（{{ prompts|length }}）</h3>
+  <table>
+    <tr><th>ID</th><th>模板名</th><th>内容摘要</th><th>状态</th><th>最后修改人</th><th>更新时间</th><th>操作</th></tr>
+    {% for p in prompts %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{{ p.name }}</td>
+      <td title="{{ p.content }}">{{ p.content[:40] }}{% if p.content|length > 40 %}…{% endif %}</td>
+      <td>{% if p.is_active %}<span class="badge badge-ok">生效中</span>{% else %}<span class="badge">历史</span>{% endif %}</td>
+      <td>{{ p.editor or '-' }}</td>
+      <td>{{ p.updated_at }}</td>
+      <td>
+        {% if not p.is_active %}
+        <form method="post" action="/admin/prompts/{{ p.id }}/activate" style="display:inline;">
+          <button class="btn btn-sm" type="submit">切换为生效</button>
+        </form>
+        {% else %}-{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
